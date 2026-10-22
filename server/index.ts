@@ -8,7 +8,7 @@ import jwt, { type JwtPayload, type VerifyErrors } from "jsonwebtoken";
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import type { ClientToServerEvents, InterServerEvents, ServerToClientEvents, SocketData } from "./interfaces.js";
-import * from "cors";
+import cors from "cors";
 
 const app = express();
 dotenv.config();
@@ -143,6 +143,7 @@ app.post("/login", async (req, res) => {
             message: "Successfully logged in.",
             token: token,
         })
+        console.log("Successfully logged in with token: " + token);
     } catch (e) {
         console.log(e);
         res.status(400).json({

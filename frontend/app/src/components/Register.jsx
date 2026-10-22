@@ -14,7 +14,19 @@ if (password !== confirmPassword) {
   return;
 }
 
-//TODO Connect registration backend 
+fetch("http://localhost:3000/register", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ name: username, email, password }),
+})
+.then((res) => {
+  if(res.ok){
+    //dopisać handling responsu (wyświetlanie dlaczego rejestracja się nie wykonała, lub przekierowanie do formularza logowania)
+  }
+})
+
 console.log("Registration form submitted");
 setEmail("");
 setUsername("");

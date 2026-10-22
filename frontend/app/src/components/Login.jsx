@@ -1,19 +1,30 @@
 import { useState } from "react";
 
-export default function Login({ onSwitch }){
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+export default function Login({ onSwitch }) {
+  const [login, setLogin] = useState("");
+  const [password, setPassword] = useState("");
 
-    function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault();
 
-    console.log("Email:", email);
+    console.log("Login:", login);
     console.log("Password submitted");
 
-    setEmail("");
-    setPassword("");
+    fetch("http://localhost:3000/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ login, password }),
+    })
+      .then((res) => {
+        if (res.ok) {
+          //dopisać handling responsu (wyświetlanie dlaczego logowanie się nie powiodło, lub przekierowanie do lobby + zapisywanie w localstorage lub securestore tokena)
+        }
+      })
 
-    //TODO connect to backend.
+    setLogin("");
+    setPassword("");
   }
 
   return (
@@ -22,13 +33,13 @@ export default function Login({ onSwitch }){
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label htmlFor="email">Email address</label>
+          <label htmlFor="login">Login</label>
           <input
-            id="email"
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            id="login"
+            type="text"
+            placeholder="Enter your name or email"
+            value={login}
+            onChange={(event) => setLogin(event.target.value)}
             autoComplete="email"
             required
           />
@@ -50,12 +61,12 @@ export default function Login({ onSwitch }){
         <button type="submit">Log In</button>
       </form>
 
-     <p>
-    Don't have an account?{" "}
-    <button className="switch-button" type="button" onClick={onSwitch}>
-        Register
-    </button>
-</p>
+      <p>
+        Don't have an account?{" "}
+        <button className="switch-button" type="button" onClick={onSwitch}>
+          Register
+        </button>
+      </p>
     </div>
   );
 }
