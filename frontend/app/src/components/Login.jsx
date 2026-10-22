@@ -1,12 +1,15 @@
 import { useState } from "react";
+import { socket } from "../../socket";
 
 export default function Login({ onSwitch }) {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   function handleSubmit(event) {
     event.preventDefault();
 
+    setError("")
     console.log("Login:", login);
     console.log("Password submitted");
 
@@ -17,11 +20,22 @@ export default function Login({ onSwitch }) {
       },
       body: JSON.stringify({ login, password }),
     })
-      .then((res) => {
+      .then(async res => {
         if (res.ok) {
-          //dopisać handling responsu (wyświetlanie dlaczego logowanie się nie powiodło, lub przekierowanie do lobby + zapisywanie w localstorage lub securestore tokena)
+          return res.json();
         }
+        const data = await res.json();
+        setError(data.message);
+
+        throw new Error('connection error.')
       })
+      .then(data => {
+        console.log(data.message);
+        localStorage.setItem("accessToken", JSON.stringify(data.token));
+        socket.auth.token = data.token;
+        socket.connect();
+      })
+      .catch(e => console.error(e));
 
     setLogin("");
     setPassword("");
@@ -57,7 +71,11 @@ export default function Login({ onSwitch }) {
             required
           />
         </div>
-
+        {error && (
+          <div className="form-group">
+            <p style={{ color: "red" }}>{error}</p>
+          </div>
+        )}
         <button type="submit">Log In</button>
       </form>
 

@@ -156,8 +156,12 @@ app.post("/login", async (req, res) => {
 io.use((socket, next) => {
     const token = socket.handshake.auth.token;
     try {
+        if(!token){
+            return next(new Error("Token is missing."));
+        }
+
         const JWTsecret = process.env.JWT_SECRET ? process.env.JWT_SECRET : "";
-        const ver = jwt.verify(token, JWTsecret, (err: VerifyErrors | null, decoded: string | JwtPayload | undefined) => {
+        jwt.verify(token, JWTsecret, (err: VerifyErrors | null, decoded: string | JwtPayload | undefined) => {
             if (err) return next(new Error("Invalid token."));
             socket.data.user = decoded;
             next();
@@ -171,7 +175,7 @@ io.use((socket, next) => {
 })
 
 io.on("connection", (socket) => {
-    console.log(socket.id);
+    console.log("established websocket connection:  " + socket.id);
 
 })
 
