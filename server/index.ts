@@ -9,6 +9,7 @@ import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import type { ClientToServerEvents, InterServerEvents, Room, ServerToClientEvents, SocketData } from "./interfaces.js";
 import cors from "cors";
+import genUniqueLobbyCode from "./functions/genLobbyCode.js";
 
 const app = express();
 dotenv.config();
@@ -163,7 +164,9 @@ io.use((socket, next) => {
         const JWTsecret = process.env.JWT_SECRET ? process.env.JWT_SECRET : "";
         jwt.verify(token, JWTsecret, (err: VerifyErrors | null, decoded: string | JwtPayload | undefined) => {
             if (err) return next(new Error("Invalid token."));
-            socket.data.user = decoded;
+            if(decoded && typeof decoded !== "string"){
+                socket.data.user = decoded;
+            }
             next();
         });
     } catch (e) {
@@ -177,10 +180,11 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
     console.log("established websocket connection:  " + socket.id);
 
-    socket.on("create-room", (roomId, username) => {
+    socket.on("create-room", (callback) => {
+        const roomId = genUniqueLobbyCode(rooms);
         const room:Room = {
             id: roomId,
-            users: [{id: socket.id, username, host: true}],
+            users: [{id: socket.id, username: socket.data.user.name, host: true}],
             maxPlayers: 4,
             status: "in-lobby",
         }
@@ -188,21 +192,27 @@ io.on("connection", (socket) => {
         rooms.set(roomId, room);
         socket.join(roomId);
 
-        io.to(roomId).emit("room-updated", room);
+        callback({success: true, room});
+        io.to(roomId).except(socket.id).emit("room-updated", room);
     })
 
-    socket.on("join-room", (roomId, username) => {
+    socket.on("join-room", (roomId, callback) => {
         const room = rooms.get(roomId);
         if(room){
             const updated: Room = {
                 id: roomId,
-                users: [...room.users.values(), {id: socket.id, username, host: false}],
+                users: [...room.users.values(), {id: socket.id, username: socket.data.user.name, host: false}],
                 maxPlayers: room.maxPlayers,
                 status: room.status,
             }
 
+            rooms.set(roomId, updated);
+            socket.join(roomId);
+
+            callback({success: true, room: updated});
+            io.to(roomId).except(socket.id).emit("room-updated", updated);
         }else{
-            io.to(socket.id).emit("join-room", )
+            callback({success: false, message: `Room with room id: ${roomId}, does not exist.`})
         }
 
     })

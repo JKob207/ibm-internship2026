@@ -2,8 +2,20 @@ import type { JwtPayload } from "jsonwebtoken";
 import type { User } from "./database/models/User.js";
 
 export interface ClientToServerEvents{
-    "create-room": (roomId: string, username: string) => void;
-    "join-room": (roomId: string, username: string) => void;
+    "create-room": ( 
+        callback: (response: {
+            success: boolean; 
+            room?: Room;
+        }) => void
+    ) => void;
+    "join-room": (
+        roomId: string,
+        callback: (response: {
+            success: boolean; 
+            room?: Room;
+            message?: string;
+        }) => void
+    ) => void;
 }
 
 export interface ServerToClientEvents{
@@ -15,7 +27,7 @@ export interface InterServerEvents{
 }
 
 export interface SocketData{
-    user: string | JwtPayload | undefined;
+    user: JwtPayload;
 }
 
 export interface Room{
