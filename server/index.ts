@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 import jwt, { type JwtPayload, type VerifyErrors } from "jsonwebtoken";
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
-import type { ClientToServerEvents, InterServerEvents, ServerToClientEvents, SocketData } from "./interfaces.js";
+import type { ClientToServerEvents, InterServerEvents, Room, ServerToClientEvents, SocketData } from "./interfaces.js";
 import cors from "cors";
 
 const app = express();
@@ -17,16 +17,7 @@ await initDb();
 app.use(express.json());
 app.use(cors())
 const httpServer = createServer(app);
-
-const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"],
-        credentials: true
-    }
-});
-
-
+const rooms = new Map<string, Room>();
 
 app.post("/register", async (req, res) => {
     let message = "Something went wrong with the server. We are sorry.";
@@ -133,7 +124,7 @@ app.post("/login", async (req, res) => {
         const JWTsecret = process.env.JWT_SECRET as string;
 
         const token = jwt.sign(
-            { userId: fetchUser.id, name: fetchUser.name },
+            { data: fetchUser },
             JWTsecret,
             { expiresIn: "24h" }
         )
@@ -152,6 +143,15 @@ app.post("/login", async (req, res) => {
         })
     }
 })
+
+const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(httpServer, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"],
+        credentials: true
+    }
+});
+
 
 io.use((socket, next) => {
     const token = socket.handshake.auth.token;
@@ -177,7 +177,38 @@ io.use((socket, next) => {
 io.on("connection", (socket) => {
     console.log("established websocket connection:  " + socket.id);
 
+    socket.on("create-room", (roomId, username) => {
+        const room:Room = {
+            id: roomId,
+            users: [{id: socket.id, username, host: true}],
+            maxPlayers: 4,
+            status: "in-lobby",
+        }
+        
+        rooms.set(roomId, room);
+        socket.join(roomId);
+
+        io.to(roomId).emit("room-updated", room);
+    })
+
+    socket.on("join-room", (roomId, username) => {
+        const room = rooms.get(roomId);
+        if(room){
+            const updated: Room = {
+                id: roomId,
+                users: [...room.users.values(), {id: socket.id, username, host: false}],
+                maxPlayers: room.maxPlayers,
+                status: room.status,
+            }
+
+        }else{
+            io.to(socket.id).emit("join-room", )
+        }
+
+    })
+
 })
+
 
 
 httpServer.listen(port, () => {
